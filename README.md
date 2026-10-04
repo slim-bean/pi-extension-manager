@@ -40,6 +40,10 @@ authentication is reported, not silently downgraded to anonymous access.
 
 ## Interactive catalog
 
+A visible loading panel shows a spinner, GitHub discovery and repository-metadata
+counts, then installed-package and local-checkout scanning. Cached catalogs skip
+GitHub discovery; there is no artificial delay on fast loads.
+
 - **↑/↓** navigate; **Space** stage install/remove; **a** review and apply.
 - **Enter** inspect dependencies, readiness checks, and setup guidance.
 - **l** choose GitHub or a detected local checkout for a _new_ installation.

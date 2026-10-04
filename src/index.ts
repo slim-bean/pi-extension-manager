@@ -30,6 +30,7 @@ import {
   type Scope,
 } from "./model.ts";
 import { showScreen, status } from "./ui.ts";
+import { withProgress } from "./progress.ts";
 
 const HELP = `Extensions manager\n/extensions                         interactive catalog\n/extensions list                    inventory + catalog\n/extensions refresh                 refresh GitHub catalog\n/extensions install <repo> [-l]      dependency-aware install plan\n/extensions remove <repo> [-l]       dependency-aware removal plan\n/extensions check <repo>             requirements and setup help\n/extensions update <repo>            update a managed git/npm package\n/extensions profile save <name>      save portable selection\n/extensions profile apply <name> [-l] additive, reviewed install plan\n/extensions profile list            list saved profiles\n/extensions help\n\n-l/--local selects project scope; default is global. No changes occur without confirmation.`;
 class ReloadRequested extends Error {}
@@ -41,30 +42,41 @@ interface Snapshot {
   native: NativePackages;
   fingerprint: string;
   fetchedAt: string;
+  checkouts: Map<string, string>;
 }
 async function snapshot(
   ctx: ExtensionCommandContext,
   agentDir: string,
   refresh = false,
+  includeCheckouts = false,
 ): Promise<Snapshot> {
-  const config = await loadConfig(agentDir);
-  ctx.ui.setStatus("extension-manager", "Discovering GitHub packages…");
-  const { catalog, notice } = await loadCatalog(agentDir, config, refresh);
-  if (notice) ctx.ui.notify(cleanText(notice), "warning");
-  const repos = structuredClone(catalog.repos);
-  const native = new NativePackages(ctx.cwd, agentDir, ctx.isProjectTrusted());
-  ctx.ui.setStatus("extension-manager", "Inspecting installed packages…");
-  const installed = await native.inventory(repos);
-  ctx.ui.setStatus("extension-manager", undefined);
-  return {
-    config,
-    repos,
-    catalogRepos: catalog.repos,
-    installed,
-    native,
-    fingerprint: native.fingerprint(),
-    fetchedAt: catalog.fetchedAt,
-  };
+  const result = await withProgress(ctx, "Loading extensions", async (report) => {
+    report("Reading manager configuration…");
+    const config = await loadConfig(agentDir);
+    const { catalog, notice } = await loadCatalog(agentDir, config, refresh, undefined, report);
+    const repos = structuredClone(catalog.repos);
+    const native = new NativePackages(ctx.cwd, agentDir, ctx.isProjectTrusted());
+    report("Inspecting installed packages and explicit extension files…");
+    const installed = await native.inventory(repos);
+    let checkouts = new Map<string, string>();
+    if (includeCheckouts) {
+      report("Looking for local development checkouts…");
+      checkouts = await findCheckouts(config.localRoots, repos);
+    }
+    return {
+      config,
+      repos,
+      catalogRepos: catalog.repos,
+      installed,
+      native,
+      fingerprint: native.fingerprint(),
+      fetchedAt: catalog.fetchedAt,
+      checkouts,
+      notice,
+    };
+  });
+  if (result.notice) ctx.ui.notify(cleanText(result.notice), "warning");
+  return result;
 }
 function resolveRepo(s: Snapshot, value: string): Repo {
   const id = repoId(value, s.config.owner);
@@ -216,7 +228,7 @@ async function interactive(
     sources = new Map<string, string>(),
     versions = new Map<string, string | undefined>();
   let filter = "";
-  let checkouts = await findCheckouts(s.config.localRoots, s.repos);
+  let checkouts = s.checkouts;
   for (;;) {
     const action = await showScreen(ctx, s.repos, s.installed, scope, changes, sources, filter);
     if (action.kind === "cancel") return;
@@ -252,8 +264,8 @@ async function interactive(
         }
         scope = scope === "user" ? "project" : "user";
       }
-      s = await snapshot(ctx, agentDir, action.kind === "refresh");
-      checkouts = await findCheckouts(s.config.localRoots, s.repos);
+      s = await snapshot(ctx, agentDir, action.kind === "refresh", true);
+      checkouts = s.checkouts;
     }
   }
 }
@@ -371,7 +383,12 @@ export default function extensionManager(pi: ExtensionAPI): void {
         if (scope === "project" && !ctx.isProjectTrusted())
           throw new Error("Project scope requires project trust. No settings were changed.");
         const agentDir = getAgentDir();
-        const s = await snapshot(ctx, agentDir, command === "refresh");
+        const s = await snapshot(
+          ctx,
+          agentDir,
+          command === "refresh",
+          !command && ctx.mode === "tui",
+        );
         if (!command) {
           await interactive(ctx, s, agentDir, scope, pi);
           return;

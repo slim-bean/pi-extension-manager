@@ -12,6 +12,8 @@ import {
   type Repo,
 } from "./model.ts";
 
+import type { Progress } from "./progress.ts";
+
 const exec = promisify(execFile);
 export type Api = (endpoint: string) => Promise<unknown>;
 export function githubApi(): Api {
@@ -66,9 +68,14 @@ async function contents(api: Api, id: string, path: string): Promise<unknown | u
     throw error;
   }
 }
-export async function discover(config: Config, api: Api): Promise<Repo[]> {
+export async function discover(
+  config: Config,
+  api: Api,
+  report: Progress = () => {},
+): Promise<Repo[]> {
   const candidates: Record<string, unknown>[] = [];
   for (let page = 1; page <= 100; page++) {
+    report(`Listing ${config.owner}'s GitHub repositories · page ${page}…`);
     const result = await api(
       `users/${config.owner}/repos?per_page=100&page=${page}&type=owner&sort=full_name`,
     );
@@ -81,6 +88,7 @@ export async function discover(config: Config, api: Api): Promise<Repo[]> {
   }
   const repos: Repo[] = [];
   let cursor = 0;
+  report(`Inspecting repository metadata · 0/${candidates.length}…`);
   await Promise.all(
     Array.from({ length: Math.min(4, candidates.length) }, async () => {
       while (cursor < candidates.length) {
@@ -128,6 +136,7 @@ export async function discover(config: Config, api: Api): Promise<Repo[]> {
           repo.installable = false; // Do not install when dependencies could not be inspected.
         }
         repos.push(repo);
+        report(`Inspecting repository metadata · ${repos.length}/${candidates.length} · ${name}`);
       }
     }),
   );
@@ -142,7 +151,9 @@ export async function loadCatalog(
   config: Config,
   refresh = false,
   api: Api = githubApi(),
+  report: Progress = () => {},
 ): Promise<CatalogResult> {
+  report("Checking the local catalog cache…");
   const path = join(managerDir(agentDir), "catalog.json");
   let cached: Catalog | undefined;
   try {
@@ -189,10 +200,13 @@ export async function loadCatalog(
     !refresh &&
     cached &&
     Date.now() - Date.parse(cached.fetchedAt) < config.cacheHours * 3_600_000
-  )
+  ) {
+    report(`Using cached catalog · ${cached.repos.length} repositories`);
     return { catalog: cached };
+  }
   try {
-    const repos = await discover(config, api);
+    report(refresh ? "Refreshing the GitHub catalog…" : "Fetching the GitHub catalog…");
+    const repos = await discover(config, api, report);
     const catalog: Catalog = {
       schemaVersion: 1,
       owner: config.owner,
@@ -200,6 +214,7 @@ export async function loadCatalog(
       fetchedAt: new Date().toISOString(),
       repos,
     };
+    report(`Saving catalog cache · ${repos.length} repositories…`);
     await atomicJson(path, catalog);
     return {
       catalog,
@@ -209,6 +224,7 @@ export async function loadCatalog(
     };
   } catch (error) {
     if (!cached) throw error;
+    report(`GitHub unavailable; using cached catalog · ${cached.repos.length} repositories`);
     return {
       catalog: cached,
       notice: `Using cached catalog from ${cached.fetchedAt}; GitHub refresh failed: ${String(error)}`,

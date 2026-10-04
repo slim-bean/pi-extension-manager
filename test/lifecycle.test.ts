@@ -77,7 +77,7 @@ test("confirmed removal finishes all cleanup BEFORE reload invalidates context",
     };
     const ctx = {
       cwd: dir,
-      mode: "tui",
+      mode: "rpc",
       hasUI: true,
       isProjectTrusted: () => false,
       waitForIdle: async () => record("idle"),
