@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "checks": [
+    {
+      "kind": "executable",
+      "names": ["gh"],
+      "label": "GitHub CLI for private repository discovery",
+      "optional": true,
+      "help": "Install gh and run gh auth login. Without gh, only public repositories can be discovered."
+    }
+  ],
+  "help": "Use /extensions to manage packages; owner and local checkout roots are configured in <agent-dir>/extension-manager/config.json. Profiles can be copied between computers.",
+  "setupCommand": "/extensions help"
+}
