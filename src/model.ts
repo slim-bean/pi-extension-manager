@@ -28,6 +28,8 @@ export interface Repo {
   source: string;
   archived: boolean;
   installable: boolean;
+  /** Identification is distinct from installability (e.g. invalid dependency metadata). */
+  isPiPackage?: boolean;
   packageName?: string;
   version?: string;
   manifest?: Manifest;

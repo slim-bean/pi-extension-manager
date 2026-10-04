@@ -40,6 +40,11 @@ authentication is reported, not silently downgraded to anonymous access.
 
 ## Interactive catalog
 
+Only identified Pi packages appear in the catalog and `/extensions list`.
+Names are clickable GitHub links in terminals with hyperlink support. Rows show
+short descriptions (GitHub description, then `package.json`); the selected row's
+summary and installation status also appear below the list for narrow terminals.
+
 A visible loading panel shows a spinner, GitHub discovery and repository-metadata
 counts, then installed-package and local-checkout scanning. Cached catalogs skip
 GitHub discovery; there is no artificial delay on fast loads.

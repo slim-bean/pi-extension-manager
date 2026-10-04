@@ -1,6 +1,7 @@
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { Container, SelectList, Text, Key, matchesKey } from "@earendil-works/pi-tui";
 import { cleanText, type Installation, type Repo, type Scope } from "./model.ts";
+import { catalogName, piPackages, shortDescription } from "./catalog.ts";
 
 export type ScreenAction =
   | { kind: "apply" | "cancel" | "refresh" | "scope" | "filter" }
@@ -29,7 +30,7 @@ export async function showScreen(
   return ctx.ui.custom<ScreenAction>((tui, theme, _kb, done) => {
     const container = new Container();
     const items = () =>
-      repos
+      piPackages(repos)
         .filter((r) => `${r.name} ${r.description}`.toLowerCase().includes(filter.toLowerCase()))
         .map((repo) => {
           const existing = installed.some((i) => i.id === repo.id && i.scope === scope);
@@ -37,10 +38,8 @@ export async function showScreen(
           const changed = changes.has(repo.id) && checked !== existing;
           return {
             value: repo.id,
-            label: `${checked ? "[x]" : "[ ]"}${changed ? "*" : " "} ${repo.name}`,
-            description: cleanText(
-              `${repo.archived ? "archived · " : ""}${repo.warning ? "metadata error · " : !repo.installable ? "not a Pi package · " : ""}${status(repo.id, installed, scope)}${sources.has(repo.id) ? ` · ${sources.get(repo.id)}` : ""}`,
-            ),
+            label: `${checked ? "[x]" : "[ ]"}${changed ? "*" : " "} ${catalogName(repo)}`,
+            description: shortDescription(repo),
           };
         });
     const listTheme = {
@@ -68,8 +67,26 @@ export async function showScreen(
     );
     if (filter) container.addChild(new Text(cleanText(`Filter: ${filter}`), 0, 0));
     container.addChild({
-      render: (width) => list.render(width),
+      render: (width) =>
+        list.getSelectedItem()
+          ? list.render(width)
+          : new Text(theme.fg("muted", "No matching Pi packages."), 0, 0).render(width),
       invalidate: () => list.invalidate(),
+    });
+    const selectedInfo = new Text("", 0, 0);
+    container.addChild({
+      render(width) {
+        const repo = repos.find((r) => r.id === list.getSelectedItem()?.value);
+        if (!repo) return [];
+        const state = cleanText(
+          `${repo.archived ? "archived · " : ""}${repo.warning ? "metadata error · " : ""}${status(repo.id, installed, scope)}${sources.has(repo.id) ? ` · ${sources.get(repo.id)}` : ""}`,
+        );
+        selectedInfo.setText(
+          `${theme.fg("muted", shortDescription(repo))}\n${theme.fg("dim", `Status: ${state}`)}`,
+        );
+        return selectedInfo.render(width);
+      },
+      invalidate: () => selectedInfo.invalidate(),
     });
     container.addChild(
       new Text(theme.fg("dim", "↑↓ navigate · space toggle · enter details · l source"), 0, 0),

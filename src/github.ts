@@ -109,6 +109,8 @@ export async function discover(
           if (record(pkg)) {
             repo.packageName = typeof pkg.name === "string" ? pkg.name : undefined;
             repo.version = typeof pkg.version === "string" ? pkg.version : undefined;
+            if (!repo.description.trim() && typeof pkg.description === "string")
+              repo.description = pkg.description;
             repo.installable =
               record(pkg.pi) &&
               ["extensions", "skills", "prompts", "themes"].some(
@@ -128,6 +130,7 @@ export async function discover(
                   ["extensions", "skills", "prompts", "themes"].includes(String(e.name)),
               );
           }
+          repo.isPiPackage = repo.installable;
           const manifest = await contents(api, id, "pi-manager.json");
           repo.manifest =
             manifest === undefined ? builtinManifest(id) : parseManifest(manifest, config.owner);
@@ -175,6 +178,7 @@ export async function loadCatalog(
           typeof r.name !== "string" ||
           typeof r.description !== "string" ||
           typeof r.installable !== "boolean" ||
+          (r.isPiPackage !== undefined && typeof r.isPiPackage !== "boolean") ||
           typeof r.archived !== "boolean"
         )
           throw new Error("Invalid catalog cache entry");

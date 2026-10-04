@@ -31,6 +31,7 @@ import {
 } from "./model.ts";
 import { showScreen, status } from "./ui.ts";
 import { withProgress } from "./progress.ts";
+import { catalogName, piPackages, shortDescription } from "./catalog.ts";
 
 const HELP = `Extensions manager\n/extensions                         interactive catalog\n/extensions list                    inventory + catalog\n/extensions refresh                 refresh GitHub catalog\n/extensions install <repo> [-l]      dependency-aware install plan\n/extensions remove <repo> [-l]       dependency-aware removal plan\n/extensions check <repo>             requirements and setup help\n/extensions update <repo>            update a managed git/npm package\n/extensions profile save <name>      save portable selection\n/extensions profile apply <name> [-l] additive, reviewed install plan\n/extensions profile list            list saved profiles\n/extensions help\n\n-l/--local selects project scope; default is global. No changes occur without confirmation.`;
 class ReloadRequested extends Error {}
@@ -395,13 +396,12 @@ export default function extensionManager(pi: ExtensionAPI): void {
         }
         if (command === "list" || command === "refresh") {
           ctx.ui.notify(
-            s.repos
-              .map((r) =>
-                cleanText(
-                  `${r.name}: ${status(r.id, s.installed, scope)}${r.warning ? " · metadata error" : !r.installable ? " · not a Pi package" : ""}${r.archived ? " · archived" : ""}`,
-                ),
+            piPackages(s.repos)
+              .map(
+                (r) =>
+                  `${catalogName(r)} — ${shortDescription(r)}\n  ${cleanText(`${status(r.id, s.installed, scope)}${r.warning ? " · metadata error" : ""}${r.archived ? " · archived" : ""}`)}`,
               )
-              .join("\n") || "No matching repositories.",
+              .join("\n") || "No matching Pi packages.",
             "info",
           );
           return;

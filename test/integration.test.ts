@@ -282,6 +282,10 @@ test("toggle screen stages changes and stays within narrow terminal widths", asy
           result = r;
         });
         assert.ok(!(component instanceof Promise));
+        const screen = component.render(80).join("\n");
+        assert.match(screen, /Extension A/);
+        assert.equal(screen.includes("pi-docs"), false);
+        assert.match(component.render(20).join("\n"), /Extension A/);
         for (const width of [20, 40, 80])
           for (const line of component.render(width))
             assert.ok(visibleWidth(line) <= width, `Line exceeds ${width}: ${line}`);
@@ -294,7 +298,18 @@ test("toggle screen stages changes and stays within narrow terminal widths", asy
       },
     },
   } as unknown as ExtensionCommandContext;
-  assert.deepEqual(await showScreen(ctx, [r], [], "user", changes, new Map(), ""), {
-    kind: "apply",
-  });
+  assert.deepEqual(
+    await showScreen(
+      ctx,
+      [r, { ...r, id: "owner/pi-docs", name: "pi-docs", installable: false }],
+      [],
+      "user",
+      changes,
+      new Map(),
+      "",
+    ),
+    {
+      kind: "apply",
+    },
+  );
 });

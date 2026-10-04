@@ -37,6 +37,7 @@ export interface PackageInfo {
   id?: string;
   version?: string;
   packageName?: string;
+  description?: string;
   manifest?: unknown;
 }
 export async function inspectPath(path: string, repos: Repo[]): Promise<PackageInfo | undefined> {
@@ -79,6 +80,7 @@ export async function inspectPath(path: string, repos: Repo[]): Promise<PackageI
         id,
         version: typeof pkg.version === "string" ? pkg.version : undefined,
         packageName: typeof pkg.name === "string" ? pkg.name : undefined,
+        description: typeof pkg.description === "string" ? pkg.description : undefined,
         manifest: await jsonFile(join(dir, "pi-manager.json")),
       };
     }
@@ -146,6 +148,9 @@ export async function inventory(
       filtered: filtered || excluded,
       missing: !path || !(await exists(path)),
     });
+    const catalogRepo = repos.find((r) => r.id === id);
+    if (catalogRepo && !catalogRepo.description.trim() && info?.description)
+      catalogRepo.description = info.description;
     // Installed checkout metadata reflects the code actually running, not the latest GitHub version.
     if (info?.manifest !== undefined) {
       const repo = repos.find((r) => r.id === id);
