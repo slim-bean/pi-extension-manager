@@ -41,7 +41,7 @@ authentication is reported, not silently downgraded to anonymous access.
 ## Interactive catalog
 
 Only identified Pi packages appear in the catalog and `/extensions list`.
-Names are clickable GitHub links in terminals with hyperlink support. Rows show
+Names are blue, underlined GitHub links in terminals with hyperlink support. Rows show
 short descriptions (GitHub description, then `package.json`); the selected row's
 summary and installation status also appear below the list for narrow terminals.
 

@@ -1,6 +1,9 @@
 import {
   getCapabilities,
+  getTerminalColorMode,
   hyperlink,
+  rgbColor,
+  styleText,
   stripTerminalSequences,
   truncateToWidth,
 } from "@earendil-works/pi-tui";
@@ -18,5 +21,10 @@ export function catalogName(repo: Repo, links = getCapabilities().hyperlinks): s
   const name = cleanText(repo.name);
   // Never put an untrusted cached URL or terminal sequence inside OSC 8.
   const url = `https://github.com/${repoId(repo.id, repo.id.split("/")[0])}`;
-  return links ? hyperlink(name, url) : name;
+  return links
+    ? hyperlink(
+        styleText(name, { fg: rgbColor(70, 145, 255), underline: true }, getTerminalColorMode()),
+        url,
+      )
+    : name;
 }

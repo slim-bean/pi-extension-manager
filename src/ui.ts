@@ -44,7 +44,12 @@ export async function showScreen(
         });
     const listTheme = {
       selectedPrefix: (s: string) => theme.fg("accent", s),
-      selectedText: (s: string) => theme.fg("accent", s),
+      // Link/truncation resets must not remove the surrounding selected-row color.
+      selectedText: (s: string) =>
+        theme.fg(
+          "accent",
+          s.replace(/(\x1b\[(?:0|39)m)/g, (reset) => reset + (theme.getFgAnsi?.("accent") ?? "")),
+        ),
       description: (s: string) => theme.fg("muted", s),
       scrollInfo: (s: string) => theme.fg("dim", s),
       noMatch: (s: string) => theme.fg("warning", s),

@@ -5,6 +5,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   getOsc8LinkAtColumn,
+  getTerminalColorMode,
+  foregroundAnsi,
+  rgbColor,
   setCapabilityOverrides,
   stripTerminalSequences,
   visibleWidth,
@@ -58,6 +61,8 @@ test("catalog hides non-packages but preserves identified Pi packages with metad
 test("names use safe GitHub OSC 8 links that survive width truncation", () => {
   const name = catalogName({ ...repo, url: "https://evil.invalid/", name: "pi-a\x1b[31m" }, true);
   assert.equal(stripTerminalSequences(name), "pi-a");
+  assert.ok(name.includes(foregroundAnsi(rgbColor(70, 145, 255), getTerminalColorMode())));
+  assert.ok(name.includes("\x1b[4m"), "clickable names should be underlined");
   assert.equal(getOsc8LinkAtColumn(name, 1), "https://github.com/owner/pi-a");
   const row = truncateToWidth(`[x] ${name}`, 7, "");
   assert.ok(visibleWidth(row) <= 7);
@@ -72,7 +77,8 @@ test("rendered catalog names remain clickable inside SelectList", async () => {
         custom(factory: Parameters<ExtensionCommandContext["ui"]["custom"]>[0]) {
           let result: unknown;
           const theme = {
-            fg: (_color: string, text: string) => text,
+            fg: (_color: string, text: string) => `\x1b[33m${text}\x1b[39m`,
+            getFgAnsi: () => "\x1b[33m",
             bold: (text: string) => text,
           } as unknown as Theme;
           const panel = factory({ requestRender() {} } as never, theme, {} as never, (value) => {
@@ -82,6 +88,16 @@ test("rendered catalog names remain clickable inside SelectList", async () => {
           const row = panel.render(80).find((line) => line.includes("pi-a"))!;
           assert.equal(getOsc8LinkAtColumn(row, 8), "https://github.com/owner/pi-a");
           assert.match(stripTerminalSequences(row), /A useful extension/);
+          const blue = foregroundAnsi(rgbColor(70, 145, 255), getTerminalColorMode());
+          assert.ok(
+            row.includes(`${blue}\x1b[4mpi-a`),
+            "selection must keep the name blue and underlined",
+          );
+          const description = row.slice(0, row.indexOf("A useful extension"));
+          assert.ok(
+            description.lastIndexOf("\x1b[33m") > description.lastIndexOf(blue),
+            "selection color must resume after the link",
+          );
           panel.handleInput?.("a");
           return Promise.resolve(result);
         },
