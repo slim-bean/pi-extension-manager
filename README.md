@@ -9,7 +9,7 @@ Requires **Pi 1.0.0+** and Node **22.19+**. Defaults to `slim-bean` repos named 
 For local development, install dependencies in the checkout:
 
 ```sh
-cd ~/projects/pi-extension-manager
+cd ~/projects/pi-extensions/pi-extension-manager
 npm install --ignore-scripts --legacy-peer-deps
 ```
 
@@ -18,16 +18,17 @@ Add the entry point to the **existing** `extensions` array in
 
 ```json
 {
-  "extensions": ["~/projects/pi-extension-manager/src/index.ts"]
+  "extensions": ["~/projects/pi-extensions/pi-extension-manager/src/index.ts"]
 }
 ```
 
 Run `/reload` after editing source. This loads directly from the checkout; no
 install step is needed. Do not also declare the same extension under `packages`.
-`pi install ~/projects/pi-extension-manager` is an alternative that also loads
-in-place, but records a package declaration instead of an explicit source file.
+`pi install ~/projects/pi-extensions/pi-extension-manager` is an alternative
+that also loads in-place, but records a package declaration instead of an
+explicit source file.
 
-After publishing the repository:
+Install from GitHub (or pin the initial release with `@v0.1.0`):
 
 ```sh
 pi install git:github.com/slim-bean/pi-extension-manager
