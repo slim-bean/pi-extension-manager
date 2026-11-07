@@ -24,7 +24,7 @@
     "dev:link-host": "node scripts/link-host.mjs"
   },
   "dependencies": {
-    "minimatch": "^10.0.3",
+    "minimatch": "^11.0.4",
     "semver": "^7.7.2"
   },
   "peerDependencies": {
@@ -40,10 +40,10 @@
     }
   },
   "devDependencies": {
-    "@types/node": "^24.0.0",
+    "@types/node": "^26.6.6",
     "@types/semver": "^7.7.0",
-    "prettier": "^3.6.2",
+    "prettier": "^3.9.10",
     "tsx": "^4.20.0",
-    "typescript": "^5.9.0"
+    "typescript": "^7.0.2"
   }
 }
