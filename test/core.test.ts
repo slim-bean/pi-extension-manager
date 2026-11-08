@@ -188,6 +188,27 @@ test("version ranges use installed/local versions, not latest catalog", () => {
   );
   assert.deepEqual(buildPlan({ ...input, installed: [installed("pi-tools")] }).errors, []);
 });
+test("dependency version gates reject prereleases and invalid versions without rejecting build metadata", () => {
+  const app = repo("pi-app", ["pi-tools"]);
+  for (const [version, range, compatible] of [
+    ["1.2.3+local.1", "^1.0.0", true],
+    ["1.3.0-beta.1", "^1.0.0", false],
+    ["2.0.0", "^1.0.0", false],
+    ["not-a-version", "^1.0.0", false],
+    ["1.2.3+local.1", ">= \t1.2.0 < \t2.0.0", true],
+    ["2.0.0", ">= \t1.2.0 < \t2.0.0", false],
+  ] as const) {
+    app.manifest!.requires[0].version = range;
+    const plan = buildPlan({
+      repos: [app, repo("pi-tools")],
+      installed: [installed("pi-tools", { version })],
+      scope: "user",
+      changes: new Map([[app.id, true]]),
+    });
+    assert.equal(plan.errors.length === 0, compatible, version);
+    if (!compatible) assert.match(plan.errors.join(), /needs owner\/pi-tools/);
+  }
+});
 test("missing/filtered providers and auto-discovered removals are blocked", () => {
   for (const override of [{ missing: true }, { filtered: true }]) {
     const plan = buildPlan({
