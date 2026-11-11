@@ -1,6 +1,6 @@
 {
   "name": "pi-extension-manager",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Discover, install, and manage your GitHub Pi extensions with /extensions.",
   "type": "module",
   "license": "MIT",
@@ -24,7 +24,7 @@
     "dev:link-host": "node scripts/link-host.mjs"
   },
   "dependencies": {
-    "minimatch": "^11.0.4",
+    "minimatch": "^11.0.5",
     "semver": "^7.8.6"
   },
   "peerDependencies": {

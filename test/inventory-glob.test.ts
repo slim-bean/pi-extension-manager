@@ -22,7 +22,7 @@ test("resource exclusion globs retain dot-directory, brace, and extglob semantic
       await writeFile(entry, "export {};\n");
       entries.push(entry);
     }
-    for (const pattern of ["{pi-a,pi-b}", "@(pi-a|pi-b)"]) {
+    for (const pattern of ["{pi-a,pi-b}", "@(pi-a|pi-b)", "!(pi-c)", "pi-[ab]"]) {
       const result = await inventory(
         [],
         [],
