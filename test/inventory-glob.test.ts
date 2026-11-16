@@ -5,6 +5,47 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { inventory } from "../src/inventory.ts";
 
+test("over-complex exclusion patterns fail inventory closed", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "pi-manager-glob-limit-"));
+  try {
+    await writeFile(
+      join(dir, "package.json"),
+      JSON.stringify({
+        name: "pi-safe",
+        version: "1.0.0",
+        repository: "https://github.com/owner/pi-safe",
+      }),
+    );
+    const entry = join(dir, "index.ts");
+    await writeFile(entry, "export {};\n");
+    await assert.rejects(
+      inventory(
+        [],
+        [],
+        {
+          user: { extensions: [entry, `!${join(dir, "?(a)".repeat(257))}`] },
+          project: {},
+        },
+        dir,
+        join(dir, "agent"),
+      ),
+      /pattern has too many extglobs/,
+    );
+    // A bad exclusion must not poison a subsequent valid discovery.
+    const result = await inventory(
+      [],
+      [],
+      { user: { extensions: [entry, `!${entry}`] }, project: {} },
+      dir,
+      join(dir, "agent"),
+    );
+    assert.equal(result.length, 1);
+    assert.equal(result[0].filtered, true);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 // Exercise the actual inventory filter rather than minimatch in isolation:
 // hidden checkout directories must not disable the user's exclusion rules.
 test("resource exclusion globs retain dot-directory, brace, and extglob semantics", async () => {
