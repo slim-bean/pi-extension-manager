@@ -46,6 +46,49 @@ test("over-complex exclusion patterns fail inventory closed", async () => {
   }
 });
 
+test("numeric ranges inside repeated and negated extglobs filter actual resources", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "pi-manager-range-extglob-"));
+  try {
+    // Brace expansion means *(1) OR *(2) ... OR *(100), not *(1|2|...|100).
+    // Thus repeated 5s match, mixed 5/10 does not, and negations form a union.
+    const values = ["5", "555", "510", "0"];
+    const entries: string[] = [];
+    for (const value of values) {
+      const root = join(dir, value);
+      await mkdir(root);
+      await writeFile(
+        join(root, "package.json"),
+        JSON.stringify({ name: `pi-${value}`, repository: `https://github.com/owner/pi-${value}` }),
+      );
+      const entry = join(root, "index.ts");
+      await writeFile(entry, "export {};\n");
+      entries.push(entry);
+    }
+    for (const [pattern, expected] of [
+      ["*({1..100})", [true, true, false, false]],
+      ["+({1..100})", [true, true, false, false]],
+      ["!({1..100})", [true, true, true, true]],
+      ["@(*({1..100}))", [true, true, false, false]],
+    ] as const) {
+      const result = await inventory(
+        [],
+        [],
+        { user: { extensions: [...entries, `!${join(dir, pattern, "index.ts")}`] }, project: {} },
+        dir,
+        join(dir, "agent"),
+      );
+      assert.deepEqual(
+        result.map((item) => item.filtered),
+        [...expected],
+        pattern,
+      );
+      assert.ok(result.every((item) => !item.missing));
+    }
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 // Exercise the actual inventory filter rather than minimatch in isolation:
 // hidden checkout directories must not disable the user's exclusion rules.
 test("resource exclusion globs retain dot-directory, brace, and extglob semantics", async () => {
