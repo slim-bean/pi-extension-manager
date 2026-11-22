@@ -113,4 +113,6 @@ npm run check          # formatting, strict types, fixtures + isolated integrati
 ```
 
 Tests never mutate real Pi settings, credentials, browser profiles, or installations.
+Inventory fixtures cover numeric brace ranges inside repeated, negated, and nested
+exclusion extglobs, so filtered resources retain normal brace-expansion semantics.
 See [AGENTS.md](AGENTS.md) for implementation boundaries.
