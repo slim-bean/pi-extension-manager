@@ -365,6 +365,27 @@ export default function extensionManager(pi: ExtensionAPI): void {
   let busy = false;
   pi.registerCommand("extensions", {
     description: "Discover, install, remove, check, and profile your GitHub Pi packages",
+    getArgumentCompletions(prefix) {
+      const words = prefix.trimStart().split(/\s+/);
+      const partial = words.pop() ?? "";
+      const local = words.some((word) => word === "-l" || word === "--local");
+      const positional = words.filter((word) => word !== "-l" && word !== "--local");
+      const actions =
+        positional.length === 0
+          ? ["list", "refresh", "install", "remove", "check", "update", "profile", "help"]
+          : positional.length === 1 && positional[0] === "profile"
+            ? ["save", "apply", "list"]
+            : [];
+      const options = local ? actions : [...actions, "--local", "-l"];
+      const items = options
+        .filter((value) => value.startsWith(partial))
+        .map((value) => ({
+          value: [...words, value].join(" "),
+          label: value,
+          ...(value === "-l" || value === "--local" ? { description: "Use project scope" } : {}),
+        }));
+      return items.length ? items : null;
+    },
     handler: async (args, ctx) => {
       if (busy) {
         ctx.ui.notify("An extension-manager operation is already running.", "warning");

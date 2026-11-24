@@ -72,6 +72,9 @@ Existing local installs are recognized and preserved, not replaced with GitHub c
 /extensions help
 ```
 
+The Pi argument menu suggests actions, nested profile actions, and scope flags.
+Repository and profile names are entered manually; the completion menu never fetches the catalog.
+
 Default scope is global; `-l`/`--local` selects the current project and requires
 Pi project trust. The full screen needs TUI mode; explicit commands also work
 in RPC with confirmation dialogs. Use native `pi install/remove` for automation.

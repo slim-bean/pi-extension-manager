@@ -1,6 +1,6 @@
 {
   "name": "pi-extension-manager",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "description": "Discover, install, and manage your GitHub Pi extensions with /extensions.",
   "type": "module",
   "license": "MIT",

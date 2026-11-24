@@ -266,6 +266,32 @@ test("factory only registers the command; help needs no external services", asyn
     },
   } as unknown as ExtensionCommandContext);
   assert.match(messages[0], /profile save/);
+  const completeArguments = registered.getArgumentCompletions;
+  assert.ok(completeArguments);
+  const complete = async (prefix: string) =>
+    (await completeArguments(prefix))?.map((item) => item.value);
+  assert.deepEqual(await complete(""), [
+    "list",
+    "refresh",
+    "install",
+    "remove",
+    "check",
+    "update",
+    "profile",
+    "help",
+    "--local",
+    "-l",
+  ]);
+  assert.deepEqual(await complete("profile "), [
+    "profile save",
+    "profile apply",
+    "profile list",
+    "profile --local",
+    "profile -l",
+  ]);
+  assert.deepEqual(await complete("--local profile ap"), ["--local profile apply"]);
+  assert.deepEqual(await complete("install owner/repo --l"), ["install owner/repo --local"]);
+  assert.equal(await complete("profile apply laptop --local anything"), undefined);
 });
 test("toggle screen stages changes and stays within narrow terminal widths", async () => {
   const changes = new Map<string, boolean>();
